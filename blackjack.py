@@ -25,12 +25,15 @@ class BJ_Deck(cards.Deck):
 			for rank in BJ_Card.RANKS:
 				self.cards.append(BJ_Card(rank, suit))
 
+	def clear(self):
+		self.cards == []
+
 	def check(self):
-		current_deck = len(self.cards)
-		if current_deck != 52:
-			self.cards = []
-			self.cards.populate()
-			self.cards.shuffle()
+		self.deck = len(self.cards)
+		if self.deck != 52:
+			return False
+		else:
+			return True
 
 class BJ_Hand(cards.Hand):
 	"""Playing cards for each player"""
@@ -167,7 +170,10 @@ class BJ_Game(object):
 
 	def play(self):
 		#deck check
-		self.deck.check()
+		if self.deck.check() == False:
+			self.deck.clear()
+			self.deck.populate()
+			self.deck.shuffle()
 		#take two cards to each player.
 		self.deck.deal(self.players + [self.dealer], per_hand = 2)
 		#first dealer's card must be overturn 
