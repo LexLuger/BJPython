@@ -45,7 +45,7 @@ class BJ_Hand(cards.Hand):
 
 
 	def __str__(self):
-		rep = self.name + ":\t" + super(BJ_Hand, self).__str__()
+		rep = self.name + ":\t" + super(BJ_Hand, self).__str__()+ "And now have:" + str(self.wallet) + " money. The cards: "
 		if self.total:
 			rep += "(" + str(self.total) + ")"
 		return rep
@@ -82,12 +82,13 @@ class BJ_Hand(cards.Hand):
 
 	def bet(self):
 		your_bet = 0
-		while self.wallet < 0:
+		while your_bet == 0:
 			print("You have: ", self.wallet, " coins.")
 			your_bet = int(input("How many coins you want to bet?"))
 			self.wallet = self.wallet - your_bet
 			if self.wallet < 0:
 				print("You do not have enough coins!")
+				your_bet = 0
 		return your_bet
 
 
@@ -137,6 +138,18 @@ class BJ_Dealer(BJ_Hand):
 	def bankrot(self):
 		print(self.name, " bankrot.")
 
+	# bet for dealer
+	def bet(self):
+		your_bet = 0
+		while your_bet == 0:
+			print("You have: ", self.wallet, " coins.")
+			your_bet = random.randint(1, 70)
+			self.wallet = self.wallet - your_bet
+			if self.wallet < 0:
+				print("You do not have enough coins!")
+				your_bet = 0
+		return your_bet
+
 class BJ_Game(object):
 	"""Blackjack game"""
 
@@ -169,24 +182,30 @@ class BJ_Game(object):
 		print("Game Over!")
 
 	def play(self):
+		end = None
+
 		#deck check
 		if self.deck.check() == False:
 			self.deck.clear()
 			self.deck.populate()
 			self.deck.shuffle()
+
 		#take two cards to each player.
 		self.deck.deal(self.players + [self.dealer], per_hand = 2)
+
 		#first dealer's card must be overturn 
 		self.dealer.flip_first_card()
 		for player in self.players:
 			print(player)
 		print(self.dealer)
+
 		#your bet please
-		players_bets = []
+		players_bets = 0
 		for player in self.players:
 			bet1 = player.bet()
-			players_bets.append(bet1)
+			players_bets += bet1
 		dealer_bet = self.dealer.bet()
+
 		#distribution extra cards for players
 		for player in self.players:
 			self.__additional_cards(player)
