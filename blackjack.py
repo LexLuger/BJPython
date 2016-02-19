@@ -1,6 +1,6 @@
 #Blackjack
 #1-7 players against dealer
-import cards, games
+import cards, games, random
 
 class BJ_Card(cards.Card):
 	"""Card for blackjack play"""
@@ -83,7 +83,7 @@ class BJ_Hand(cards.Hand):
 	def bet(self):
 		your_bet = 0
 		while your_bet == 0:
-			print("You have: ", self.wallet, " coins.")
+			print(self.name, " have: ", self.wallet, " coins.")
 			your_bet = int(input("How many coins you want to bet?"))
 			self.wallet = self.wallet - your_bet
 			if self.wallet < 0:
@@ -91,6 +91,8 @@ class BJ_Hand(cards.Hand):
 				your_bet = 0
 		return your_bet
 
+	def money_add(self, money):
+		self.wallet + money
 
 
 class BJ_Player(BJ_Hand):
@@ -116,6 +118,8 @@ class BJ_Player(BJ_Hand):
 	def bankrot(self):
 		print(self.name, " player is bankrot and must leave the game.")
 
+	
+
 class BJ_Dealer(BJ_Hand):
 	"""BJ dealer"""
 
@@ -139,10 +143,10 @@ class BJ_Dealer(BJ_Hand):
 		print(self.name, " bankrot.")
 
 	# bet for dealer
-	def bet(self):
+	def dealer_bet(self):
 		your_bet = 0
 		while your_bet == 0:
-			print("You have: ", self.wallet, " coins.")
+			print("Dealer have: ", self.wallet, " coins.")
 			your_bet = random.randint(1, 70)
 			self.wallet = self.wallet - your_bet
 			if self.wallet < 0:
@@ -181,6 +185,23 @@ class BJ_Game(object):
 	def game_over(self):
 		print("Game Over!")
 
+	def wallets_check(self):	
+		#wallets check
+		end = False
+		for player in self.players:
+			if player.bankrot_check() == True:
+				player.bankrot()
+				self.players.remove(player)
+		if self.players == []:
+			self.dealer.win()
+			end = True
+		if self.dealer.bankrot_check() == True:
+			self.dealer.bankrot()
+			for player in self.players:
+				player.win()
+				end = True
+		return end
+
 	def play(self):
 		end = None
 
@@ -204,7 +225,13 @@ class BJ_Game(object):
 		for player in self.players:
 			bet1 = player.bet()
 			players_bets += bet1
-		dealer_bet = self.dealer.bet()
+
+		#dealer's bet
+		dealer_bet_ = self.dealer.dealer_bet()
+
+		#show bets
+		print("Player's bet equal ", players_bets, ".")
+		print("\n Dealer's bet ", dealer_bet_, ".")
 
 		#distribution extra cards for players
 		for player in self.players:
@@ -219,38 +246,42 @@ class BJ_Game(object):
 			self.__additional_cards(self.dealer)
 			if self.dealer.is_busted():
 				#win everybody who still in a game
+				win_cash = dealer_bet_/self.still_playing
 				for player in self.still_playing:
 					player.win()
+					player.money_add(self, win_cash)
 			else:
 				#compare scores between the players, still in game
+				#define win money for each player
+				win_cash = dealer_bet_ / self.still_playing + players_bets / self.still_playing
+				return_cash = players_bets / self.still_playing
 				for player in self.still_playing:
 					if player.total > self.dealer.total:
 						player.win()
+						player.money_add(win_cash)
+					
 					elif player.total < self.dealer.total:
 						player.lose()
+						self.dealer.money_add(players_bets)
+						self.dealer.money_add(dealer_bet_)
+						dealer_bet_ = 0
+						players_bets = 0
 					else:
 						player.push()
+						player.money_add(return_cash)
+						self.dealer.money_add(dealer_bet_)
+						dealer_bet_ = 0
+
+		#delete all bets
+		players_bets = 0
+		dealer_bet_ = 0
+
 		#delete for all cards
 		for player in self.players:
 			player.clear()
 		self.dealer.clear()
 		
-	def wallets_check(self):	
-		#wallets check
-		end = False
-		for player in self.players:
-			if player.bankrot_check() == True:
-				player.bankrot()
-				self.players.remove(player)
-		if self.players == []:
-			self.dealer.win()
-			end = True
-		if self.dealer.bankrot_check() == True:
-			self.dealer.bankrot()
-			for player in self.players:
-				player.win()
-				end = True
-		return end
+	
 
 			
 
