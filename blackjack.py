@@ -85,14 +85,16 @@ class BJ_Hand(cards.Hand):
 		while your_bet == 0:
 			print(self.name, " have: ", self.wallet, " coins.")
 			your_bet = int(input("How many coins you want to bet?"))
-			self.wallet = self.wallet - your_bet
 			if self.wallet < 0:
 				print("You do not have enough coins!")
 				your_bet = 0
+			else: 
+				self.wallet = self.wallet - your_bet
+
 		return your_bet
 
 	def money_add(self, money):
-		self.wallet + money
+		self.wallet += money
 
 
 class BJ_Player(BJ_Hand):
@@ -134,6 +136,9 @@ class BJ_Dealer(BJ_Hand):
 
 	def bust(self):
 		print(self.name, " busted!!")
+
+	def win(self):
+		print(self.name, " won!")
 
 	def flip_first_card(self):
 		first_card = self.cards[0]
@@ -244,17 +249,28 @@ class BJ_Game(object):
 			#distrubtion extra cards for dealer
 			print(self.dealer)
 			self.__additional_cards(self.dealer)
+			
+			#variables for money distribution
+			quantity_still_playing = len(self.still_playing)
+			win_cash = dealer_bet_ / quantity_still_playing + players_bets / quantity_still_playing
+			return_cash = players_bets / quantity_still_playing
+			dealer_cash = players_bets + dealer_bet_
+			
 			if self.dealer.is_busted():
 				#win everybody who still in a game
-				win_cash = dealer_bet_/self.still_playing
+				win_cash = dealer_bet_/quantity_still_playing
 				for player in self.still_playing:
 					player.win()
-					player.money_add(self, win_cash)
+					player.money_add(win_cash)
+
+			elif self.still_playing == []:
+						self.dealer.win()
+						self.dealer.money_add(dealer_cash)
+						dealer_bet_ = 0
+						players_bets = 0
 			else:
 				#compare scores between the players, still in game
 				#define win money for each player
-				win_cash = dealer_bet_ / self.still_playing + players_bets / self.still_playing
-				return_cash = players_bets / self.still_playing
 				for player in self.still_playing:
 					if player.total > self.dealer.total:
 						player.win()
@@ -262,10 +278,10 @@ class BJ_Game(object):
 					
 					elif player.total < self.dealer.total:
 						player.lose()
-						self.dealer.money_add(players_bets)
-						self.dealer.money_add(dealer_bet_)
-						dealer_bet_ = 0
-						players_bets = 0
+						self.dealer.win()
+						self.dealer.money_add(dealer_cash)
+						dealer_cash = 0
+
 					else:
 						player.push()
 						player.money_add(return_cash)
