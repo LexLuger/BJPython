@@ -38,10 +38,12 @@ class BJ_Deck(cards.Deck):
 class BJ_Hand(cards.Hand):
 	"""Playing cards for each player"""
 
-	def __init__(self, name, wallet = 100):
+	def __init__(self, name, bet, wallet = 100):
 		super(BJ_Hand, self).__init__()
 		self.name = name
+		self.bet = bet
 		self.wallet = wallet
+		
 
 
 	def __str__(self):
@@ -80,22 +82,26 @@ class BJ_Hand(cards.Hand):
 		if self.wallet == 0:
 			return True
 
-	def bet(self):
-		your_bet = 0
-		while your_bet == 0:
+	def make_bet(self):
+		self.bet = 0
+		while self.bet == 0:
 			print(self.name, " have: ", self.wallet, " coins.")
-			your_bet = int(input("How many coins you want to bet?"))
+			self.bet = int(input("How many coins you want to bet?"))
 			if self.wallet < 0:
 				print("You do not have enough coins!")
-				your_bet = 0
+				self.bet = 0
 			else: 
 				self.wallet = self.wallet - your_bet
 
-		return your_bet
+		return self.bet
 
 	def money_add(self, money):
 		self.wallet += money
 
+	def bet_return(self):
+		self.wallet += self.bet
+		self.bet = 0 
+		return self.wallet, self.bet
 
 class BJ_Player(BJ_Hand):
 	""" blackjack player """
@@ -149,15 +155,14 @@ class BJ_Dealer(BJ_Hand):
 
 	# bet for dealer
 	def dealer_bet(self):
-		your_bet = 0
-		while your_bet == 0:
+		self.bet = 0
+		while self.bet == 0:
 			print("Dealer have: ", self.wallet, " coins.")
-			your_bet = random.randint(1, 70)
+			self.bet = random.randint(1, 70)
 			self.wallet = self.wallet - your_bet
 			if self.wallet < 0:
-				print("You do not have enough coins!")
-				your_bet = 0
-		return your_bet
+				self.bet = 0
+		return self.bet
 
 class BJ_Game(object):
 	"""Blackjack game"""
@@ -226,71 +231,73 @@ class BJ_Game(object):
 		print(self.dealer)
 
 		#your bet please
-		players_bets = 0
 		for player in self.players:
-			bet1 = player.bet()
-			players_bets += bet1
+			player.make_bet()
 
 		#dealer's bet
-		dealer_bet_ = self.dealer.dealer_bet()
+		self.dealer.dealer_bet()
 
 		#show bets
-		print("Player's bet equal ", players_bets, ".")
-		print("\n Dealer's bet ", dealer_bet_, ".")
+		for player in self.players:
+			print("Player " ,self.name, "made ", self.bet, " coins.")
+		print("\n Dealer's bet ", self.dealer.bet, " .")
 
 		#distribution extra cards for players
 		for player in self.players:
 			self.__additional_cards(player)
 		self.dealer.flip_first_card() #dealer's first card is open
+		#variables for dealer's win cash
+		d_win_cash = 0
 		if not self.still_playing:
 			#all the players is busted, only dealer's hand is show up
 			print(self.dealer)
+			self.dealer.win()
+			for player in self.players:
+				d_win_cash += player.bet
+			self.dealer.add_money(d_win_cash)
+			self.dealer.bet_return()
 		else:
 			#distrubtion extra cards for dealer
 			print(self.dealer)
 			self.__additional_cards(self.dealer)
 			
-			#variables for money distribution
-			quantity_still_playing = len(self.still_playing)
-			win_cash = dealer_bet_ / quantity_still_playing + players_bets / quantity_still_playing
-			return_cash = players_bets / quantity_still_playing
-			dealer_cash = players_bets + dealer_bet_
-			
 			if self.dealer.is_busted():
+				still_playing_quantity = len(self.still_playing)
+				p_win_cash = self.dealer.bet / still_playing_quantity
 				#win everybody who still in a game
-				win_cash = dealer_bet_/quantity_still_playing
 				for player in self.still_playing:
 					player.win()
-					player.money_add(win_cash)
-
-			elif self.still_playing == []:
-						self.dealer.win()
-						self.dealer.money_add(dealer_cash)
-						dealer_bet_ = 0
-						players_bets = 0
+					player.money_add(p_win_cash)
+					player.bet_return()
 			else:
 				#compare scores between the players, still in game
 				#define win money for each player
+				winners = []
+				p_win_cash = 0
 				for player in self.still_playing:
 					if player.total > self.dealer.total:
 						player.win()
-						player.money_add(win_cash)
+						winners.append(player)
+						winners_quantity = len(winners)
+						p_win_cash = self.dealer.bet / winners_quantity
+						player.money_add(p_win_cash)
+						player.bet_return()
 					
 					elif player.total < self.dealer.total:
 						player.lose()
 						self.dealer.win()
-						self.dealer.money_add(dealer_cash)
-						dealer_cash = 0
+						for player in self.players:
+							d_win_cash += player.bet
+						self.dealer.add_money(d_win_cash)
+						self.dealer.bet_return()
 
 					else:
 						player.push()
-						player.money_add(return_cash)
-						self.dealer.money_add(dealer_bet_)
-						dealer_bet_ = 0
+						for players in self.players:
+							player.bet_return()
+						self.dealer.bet_return()
 
-		#delete all bets
-		players_bets = 0
-		dealer_bet_ = 0
+
 
 		#delete for all cards
 		for player in self.players:
