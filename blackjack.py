@@ -38,7 +38,7 @@ class BJ_Deck(cards.Deck):
 class BJ_Hand(cards.Hand):
 	"""Playing cards for each player"""
 
-	def __init__(self, name, bet, wallet = 100):
+	def __init__(self, name, bet = 0, wallet = 100):
 		super(BJ_Hand, self).__init__()
 		self.name = name
 		self.bet = bet
@@ -87,11 +87,13 @@ class BJ_Hand(cards.Hand):
 		while self.bet == 0:
 			print(self.name, " have: ", self.wallet, " coins.")
 			self.bet = int(input("How many coins you want to bet?"))
+			self.wallet = self.wallet - self.bet
 			if self.wallet < 0:
 				print("You do not have enough coins!")
-				self.bet = 0
-			else: 
-				self.wallet = self.wallet - your_bet
+				self.wallet += self.bet
+				self.bet = 0 
+
+				
 
 		return self.bet
 
@@ -157,11 +159,12 @@ class BJ_Dealer(BJ_Hand):
 	def dealer_bet(self):
 		self.bet = 0
 		while self.bet == 0:
-			print("Dealer have: ", self.wallet, " coins.")
-			self.bet = random.randint(1, 70)
-			self.wallet = self.wallet - your_bet
+			self.bet = random.randint(1, 100)
+			self.wallet = self.wallet - self.bet
 			if self.wallet < 0:
+				self.wallet += self.bet
 				self.bet = 0
+		print("Dealer have: ", self.wallet, " coins.")
 		return self.bet
 
 class BJ_Game(object):
@@ -239,7 +242,7 @@ class BJ_Game(object):
 
 		#show bets
 		for player in self.players:
-			print("Player " ,self.name, "made ", self.bet, " coins.")
+			print("Player " ,player.name, "made ", player.bet, " coins.")
 		print("\n Dealer's bet ", self.dealer.bet, " .")
 
 		#distribution extra cards for players
@@ -254,7 +257,7 @@ class BJ_Game(object):
 			self.dealer.win()
 			for player in self.players:
 				d_win_cash += player.bet
-			self.dealer.add_money(d_win_cash)
+			self.dealer.money_add(d_win_cash)
 			self.dealer.bet_return()
 		else:
 			#distrubtion extra cards for dealer
@@ -286,10 +289,12 @@ class BJ_Game(object):
 					elif player.total < self.dealer.total:
 						player.lose()
 						self.dealer.win()
-						for player in self.players:
-							d_win_cash += player.bet
-						self.dealer.add_money(d_win_cash)
+						self.dealer.money_add(player.bet)
 						self.dealer.bet_return()
+						self.dealer.bet = 0
+
+					elif player.is_busted():
+						self.dealer.money_add(player.bet)
 
 					else:
 						player.push()
@@ -319,9 +324,8 @@ def main():
 		print()
 	game = BJ_Game(names)
 	again = None
-	end = None
 	while again != "n":
-		while end != True:
+		while game.wallets_check() != True:
 			game.wallets_check()
 			game.play()
 		again = games.ask_yes_no("\nDo you want to play again (y/n)?")
